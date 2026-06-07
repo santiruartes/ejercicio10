@@ -1,12 +1,12 @@
 package com.prog4.ejercicio10.controller;
 
 import com.prog4.ejercicio10.model.Producto;
-import com.prog4.ejercicio10.repository.ProductoRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.prog4.ejercicio10.service.ProductoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -14,19 +14,42 @@ import java.util.List;
 @RequestMapping("/api/productos")
 public class ProductoController {
 
-    private final ProductoRepository productoRepository;
-
-    public ProductoController(ProductoRepository productoRepository) {
-        this.productoRepository = productoRepository;
-    }
+    @Autowired
+    private ProductoService productoService;
 
     @PostMapping
-    public Producto crearProducto(@RequestBody Producto producto) {
-        return productoRepository.save(producto);
+    public ResponseEntity<Producto> crearProducto(@RequestBody Producto producto) {
+        try {
+            Producto saved = productoService.save(producto);
+            return new ResponseEntity<>(saved, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping
-    public List<Producto> listarProductos() {
-        return (List<Producto>) productoRepository.findAll();
+    public ResponseEntity<List<Producto>> listarProductos() {
+        try {
+            List<Producto> productos = productoService.findAll();
+            if (productos.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            }
+            return new ResponseEntity<>(productos, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/paginado")
+    public ResponseEntity<Page<Producto>> listarProductosPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        try {
+            Page<Producto> productosPage = productoService.findAllPaginated(page, size);
+            return new ResponseEntity<>(productosPage, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
